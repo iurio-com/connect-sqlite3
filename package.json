@@ -1,25 +1,23 @@
 {
   "name": "connect-sqlite3",
   "description": "SQLite3 session store for Connect",
-  "version": "0.9.16",
+  "version": "1.0.0",
   "author": "David Feinberg",
   "main": "lib/connect-sqlite3",
   "scripts": {
     "test": "mocha test/test.js"
   },
   "peerDependencies": {
-    "sqlite3": "^5.0.0",
     "express-session": "^1.0.0"
   },
   "devDependencies": {
     "connect": ">=1.0.0",
     "express-session": "^1.18.1",
     "mocha": "^2.3.4",
-    "should": "^8.2.0",
-    "sqlite3": "^5.1.7"
+    "should": "^8.2.0"
   },
   "engines": {
-    "node": ">=0.4.x"
+    "node": ">=22.5.0"
   },
   "repository": {
     "type": "git",

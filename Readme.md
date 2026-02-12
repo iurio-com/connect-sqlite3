@@ -2,6 +2,9 @@
 
 connect-sqlite3 is a SQLite3 session store modeled after the TJ's connect-redis store.
 
+> **Requires Node.js >= 22.5.0** — uses the built-in [`node:sqlite`](https://nodejs.org/api/sqlite.html) module (`DatabaseSync`). No native addons needed.
+
+> **Note:** `node:sqlite` is currently experimental in Node.js and may emit a warning on startup.
 
 ## Installation
 ```sh
@@ -10,8 +13,8 @@ connect-sqlite3 is a SQLite3 session store modeled after the TJ's connect-redis 
 
 ## Options
 
-  - `table='sessions'` Database table name
-  - `db=dbConnection` SQLite database connection object
+  - `table='server_sessions'` Database table name
+  - `db=dbConnection` A `DatabaseSync` instance from `node:sqlite`
   - `concurrentDB='false'` Enables [WAL](https://www.sqlite.org/wal.html) mode (defaults to false)
 
 > **Note:** The `options` parameter requires an already initialized database connection instead of a file name. This design allows the library to remain flexible about database connection management in your application.
@@ -19,7 +22,8 @@ connect-sqlite3 is a SQLite3 session store modeled after the TJ's connect-redis 
 ## Usage
 ```js
     var connect = require('connect'),
-        dbConnection = new sqlite3.Database(':memory:'),
+        { DatabaseSync } = require('node:sqlite'),
+        dbConnection = new DatabaseSync(':memory:'),
         SQLiteStore = require('connect-sqlite3')(connect);
 
     connect.createServer(
@@ -27,30 +31,18 @@ connect-sqlite3 is a SQLite3 session store modeled after the TJ's connect-redis 
       connect.session({ store: new SQLiteStore({ db: dbConnection }), secret: 'your secret' })
     );
 ```
-  with express
+  with express 4.x:
 ```js
-    3.x:
-    var SQLiteStore = require('connect-sqlite3')(express);
-
-    4.x:
     var session = require('express-session');
+    var { DatabaseSync } = require('node:sqlite');
     var SQLiteStore = require('connect-sqlite3')(session);
 
-    var dbConnection = new sqlite3.Database('./sessions.db')
-    app.configure(function() {
-      app.set('views', __dirname + '/views');
-      app.set('view engine', 'ejs');
-      app.use(express.bodyParser());
-      app.use(express.methodOverride());
-      app.use(express.cookieParser());
-      app.use(session({
-        store: new SQLiteStore({ db: dbConnection }),
-        secret: 'your secret',
-        cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 1 week
-      }));
-      app.use(app.router);
-      app.use(express.static(__dirname + '/public'));
-    });
+    var dbConnection = new DatabaseSync('./sessions.db');
+    app.use(session({
+      store: new SQLiteStore({ db: dbConnection }),
+      secret: 'your secret',
+      cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 1 week
+    }));
 ```
 ## Test
 ```sh
