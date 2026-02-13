@@ -3,18 +3,7 @@ var should = require('should'),
     { DatabaseSync } = require('node:sqlite'),
     SQLiteStore = require('../lib/connect-sqlite3.js')(session);
 
-describe('connect-sqlite3 basic test suite', function() {
-    var dbConnection;
-
-    before(function() {
-        dbConnection = new DatabaseSync(':memory:');
-        this.memStore = new SQLiteStore({db: dbConnection});
-    });
-
-    after(function() {
-        dbConnection.close();
-    });
-
+const testSuite = function() {
     it('it should save a new session record', function(done) {
         this.memStore.set('1111222233334444', {cookie: {maxAge:2000}, name: 'sample name'}, function(err, rows) {
             should.not.exist(err, 'set() returned an error');
@@ -89,5 +78,41 @@ describe('connect-sqlite3 basic test suite', function() {
                 });
             });
         });
+    });
+};
+
+describe('connect-sqlite3 basic test suite', function() {
+    describe('using db', function() {
+        var dbConnection;
+
+        before(function() {
+            dbConnection = new DatabaseSync(':memory:');
+            this.memStore = new SQLiteStore({db: dbConnection});
+        });
+
+        after(function() {
+            dbConnection.close();
+        });
+
+        testSuite();
+    });
+
+    describe('using getDB()', function() {
+        var dbConnection;
+
+        before(function() {
+            getDB = function() { dbConnection = new DatabaseSync(':memory:'); return dbConnection; }
+            this.memStore = new SQLiteStore({getDB});
+        });
+
+        after(function() {
+            dbConnection.close();
+        });
+
+        it('database should not exist yet', function () {
+            should.not.exist(dbConnection);
+        });
+
+        testSuite();
     });
 });
