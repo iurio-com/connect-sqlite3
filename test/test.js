@@ -101,7 +101,7 @@ describe('connect-sqlite3 basic test suite', function() {
         var dbConnection;
 
         before(function() {
-            getDB = function() { dbConnection = new DatabaseSync(':memory:'); return dbConnection; }
+            var getDB = function() { return dbConnection; }
             this.memStore = new SQLiteStore({getDB});
         });
 
@@ -109,10 +109,61 @@ describe('connect-sqlite3 basic test suite', function() {
             dbConnection.close();
         });
 
-        it('database should not exist yet', function () {
+        it('database should be lazily initialized on first access', function (done) {
             should.not.exist(dbConnection);
+            dbConnection = new DatabaseSync(':memory:');
+            // First access triggers dbInit via getter
+            this.memStore.length(function(err, len) {
+                should.not.exist(err);
+                len.should.equal(0);
+                done();
+            });
         });
 
         testSuite();
+    });
+
+    describe('using getDB() with db swap (simulates autoreload)', function() {
+        var dbConnection;
+
+        before(function() {
+            dbConnection = new DatabaseSync(':memory:');
+            var getDB = function() { return dbConnection; }
+            this.memStore = new SQLiteStore({getDB});
+        });
+
+        after(function() {
+            dbConnection.close();
+        });
+
+        it('should survive a database swap', function(done) {
+            var that = this;
+            // Write a session to the original db
+            this.memStore.set('swap-test', {cookie: {maxAge:2000}, name: 'before swap'}, function(err) {
+                should.not.exist(err, 'set() before swap returned an error');
+
+                // Simulate autoreload: close old db, create new one
+                dbConnection.close();
+                dbConnection = new DatabaseSync(':memory:');
+
+                // Operations on the new db should work (dbInit re-runs automatically)
+                that.memStore.set('swap-test-2', {cookie: {maxAge:2000}, name: 'after swap'}, function(err) {
+                    should.not.exist(err, 'set() after swap returned an error');
+
+                    that.memStore.get('swap-test-2', function(err, session) {
+                        should.not.exist(err, 'get() after swap returned an error');
+                        should.exist(session);
+                        session.name.should.equal('after swap');
+
+                        // Old session should be gone (new db)
+                        that.memStore.get('swap-test', function(err, session) {
+                            should.not.exist(err);
+                            should.not.exist(session);
+                            done();
+                        });
+                    });
+                });
+            });
+        });
     });
 });
